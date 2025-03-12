@@ -35,7 +35,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-@st.cache_data
 def load_data():
     """Load the processed attention data."""
     if os.path.exists("attention_analysis_results.pkl"):

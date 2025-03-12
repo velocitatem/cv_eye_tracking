@@ -2,9 +2,10 @@ import pickle
 import os
 import numpy as np
 from collections import defaultdict
-import face_recognition  # You might need to install this: pip install face_recognition
 import matplotlib.pyplot as plt
 from sklearn.cluster import DBSCAN
+from deepface import DeepFace
+import cv2
 
 # Load existing observations
 observations = []
@@ -13,24 +14,37 @@ if os.path.exists("observations.pkl"):
         observations = pickle.load(f)
 print(f"Loaded {len(observations)} observations.")
 
-# Extract face encodings for each observation
+# Initialize DeepFace model once (more efficient)
+model_name = "VGG-Face"  # Options: "VGG-Face", "Facenet", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib"
+detector_backend = "retinaface"  # More accurate than default HOG detector
+
+# Extract face embeddings for each observation
 face_encodings = []
 attention_scores = []
 timestamps = []  # Assuming observations are in chronological order
 for i, (face_image, attention) in enumerate(observations):
-    # Get face encoding
-    encoding = face_recognition.face_encodings(face_image)
-    if len(encoding) > 0:  # Make sure a face was detected
-        face_encodings.append(encoding[0])
-        attention_scores.append(attention)
-        timestamps.append(i)  # Use index as timestamp if no actual timestamp exists
-    else:
-        print(f"No face detected in observation {i}")
+    try:
+        # DeepFace returns analyzation results including face embeddings
+        results = DeepFace.represent(face_image,
+                                     model_name=model_name,
+                                     detector_backend=detector_backend,
+                                     enforce_detection=False)
+
+        # Check if any faces were detected
+        if results and isinstance(results, list) and len(results) > 0:
+            # Get the embedding of the first detected face
+            face_encodings.append(results[0]["embedding"])
+            attention_scores.append(attention)
+            timestamps.append(i)
+        else:
+            print(f"No face detected in observation {i}")
+    except Exception as e:
+        print(f"Error processing observation {i}: {str(e)}")
 
 # Cluster faces to identify unique people using DBSCAN
-# This is more robust than comparing each face to every other face
 face_encodings_array = np.array(face_encodings)
-clustering = DBSCAN(eps=0.6, min_samples=3, metric="euclidean").fit(face_encodings_array)
+clustering = DBSCAN(eps=0.3, min_samples=3, metric="cosine").fit(face_encodings_array)
+# Note: DeepFace works better with cosine distance than euclidean
 face_ids = clustering.labels_
 
 # Map each face to a person ID
@@ -64,7 +78,12 @@ results = {
     "person_attention_series": dict(person_attention_series),
     "person_timestamps": dict(person_timestamps),
     "person_avg_attention": person_avg_attention,
-    "person_images": dict(person_images)
+    "person_images": dict(person_images),
+    "model_info": {
+        "model": model_name,
+        "detector": detector_backend,
+        "clustering": "DBSCAN (cosine)"
+    }
 }
 
 with open("attention_analysis_results.pkl", "wb") as f:
@@ -84,16 +103,14 @@ plt.legend()
 plt.grid(True)
 plt.savefig("attention_time_series.png")
 
-# Optional: Create a visualization that shows each person with their average attention
+# Visualization that shows each person with their average attention
 def visualize_people_with_scores():
     num_people = len(person_avg_attention)
     cols = min(5, num_people)
     rows = (num_people + cols - 1) // cols
 
     plt.figure(figsize=(15, 3 * rows))
-    for i, person_id in enumerate(sorted_people):
-        person_id = person_id[0]  # Extract person_id from the tuple
-
+    for i, person_id in enumerate([pid for pid, _ in sorted_people]):
         # Select a representative image for this person
         representative_img = person_images[person_id][len(person_images[person_id])//2]
 
@@ -120,3 +137,20 @@ if person_attention_variance:
     print("\nPeople with most variable attention:")
     for person_id, variance in most_variable[:3]:
         print(f"Person {person_id}: Variance = {variance:.4f}")
+
+# Optional: Add function to verify if two images are of the same person
+def verify_same_person(img1_index, img2_index):
+    """Verify if two observation images contain the same person"""
+    img1 = observations[img1_index][0]
+    img2 = observations[img2_index][0]
+
+    try:
+        result = DeepFace.verify(img1, img2,
+                               model_name=model_name,
+                               detector_backend=detector_backend,
+                               enforce_detection=False)
+
+        return result["verified"], result["distance"]
+    except Exception as e:
+        print(f"Error verifying images {img1_index} and {img2_index}: {str(e)}")
+        return False, float('inf')
