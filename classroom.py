@@ -10,6 +10,7 @@ import urllib.request
 import os
 import mediapipe as mp
 import time
+import argparse
 from deepface import DeepFace
 from retinaface import RetinaFace
 
@@ -28,7 +29,7 @@ def deepface_find_faces(frame):
 
 
 class CV:
-    def __init__(self, faces_method="retina", eyes_method="hough", video_path=None, gui=False):
+    def __init__(self, faces_method="retina", eyes_method="hough", video_path=None, gui=False, output_file="observations.pkl"):
         """
         Initialize the face and eye detectors.
         Parameters:
@@ -49,6 +50,9 @@ class CV:
             'centerface',
             ]
             eyes_method: The method to use for eye detection. Options are "haar", "mediapipe", "hough".
+            video_path: Path to a video file to process. If None, use webcam.
+            gui: Whether to show a GUI with visualization.
+            output_file: File to save observations to.
         """
         self.haar_eye_url = "https://raw.githubusercontent.com/opencv/opencv/refs/heads/master/data/haarcascades/haarcascade_eye.xml"
         self.haar_face_url = "https://raw.githubusercontent.com/opencv/opencv/refs/heads/master/data/haarcascades/haarcascade_frontalface_default.xml"
@@ -58,6 +62,7 @@ class CV:
         if not os.path.exists("haarcascade_face.xml"):
             urllib.request.urlretrieve(self.haar_face_url, "haarcascade_face.xml")
         self.gui = gui
+        self.output_file = output_file
 
         # Load cascades with improved parameters
         self.face_cascade = cv2.CascadeClassifier('haarcascade_face.xml')
@@ -92,7 +97,7 @@ class CV:
             print(f"Loaded {len(last)} observations.")
             complete = last + self.cache
             print(f"Total observations: {len(last)}")
-            with open("observations.pkl", "wb") as f:
+            with open(self.output_file, "wb") as f:
                 print(f"Saving {len(complete)} observations.")
                 pickle.dump(complete, f)
             self.cache = []
@@ -102,8 +107,8 @@ class CV:
         Load observations from disk.
         """
         import pickle
-        if os.path.exists("observations.pkl"):
-            with open("observations.pkl", "rb") as f:
+        if os.path.exists(self.output_file):
+            with open(self.output_file, "rb") as f:
                 cache = pickle.load(f)
         else:
             cache = []
@@ -532,21 +537,34 @@ class CV:
 
 
 if __name__ == "__main__":
-    # Use improved methods as default
+    # Set up command line arguments
+    parser = argparse.ArgumentParser(description='Classroom Attention Tracker using Computer Vision')
+    
+    # Add arguments
+    parser.add_argument('--faces', type=str, default='opencv', 
+                        choices=['opencv', 'ssd', 'dlib', 'mtcnn', 'fastmtcnn', 'retinaface', 
+                                'mediapipe', 'yolov8', 'yolov11s', 'yolov11n', 'yolov11m', 
+                                'yunet', 'centerface'],
+                        help='Face detection method to use')
+    
+    parser.add_argument('--eyes', type=str, default='hough', 
+                        choices=['haar', 'mediapipe', 'hough'],
+                        help='Eye detection method to use')
+    
+    parser.add_argument('--video', type=str, default=None,
+                        help='Path to video file. If not provided, uses webcam')
+    
+    parser.add_argument('--gui', action='store_true', default=False,
+                        help='Enable GUI visualization')
+                        
+    parser.add_argument('--output', type=str, default="observations.pkl",
+                        help='File to save observations to (default: observations.pkl)')
+    
+    # Parse arguments
+    args = parser.parse_args()
 
-    faces = "opencv"  # Use RetinaFace for more robust face detection in classroom
-    eyes = "hough"    # Use Hough transform for better eye detection
-
-    # For testing, you can uncomment and use the alternative options:
-    # faces = "haar"   # Improved Haar cascade
-    # eyes = "haar"    # Improved Haar cascade for eyes
-
-    # Initialize with video path if available, or use webcam
-    video_path = None
-    video_path = "/home/velocitatem/Downloads/IMG_9561.mp4"  # Uncomment to use video file
-
-    # Initialize detection system with GUI for visualization
-    setup = CV(faces, eyes, video_path=video_path, gui=True)
+    # Initialize detection system with parsed arguments
+    setup = CV(args.faces, args.eyes, video_path=args.video, gui=args.gui, output_file=args.output)
 
     # Process first frame
     setup.step()
@@ -560,7 +578,7 @@ if __name__ == "__main__":
             frame_count += 1
 
             # Exit on 'q' key press
-            if setup.gui:
+            if args.gui:
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
     except Exception as e:
