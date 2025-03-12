@@ -1,0 +1,5 @@
+mediapipe
+opencv-python
+face_recognition
+scikit-learn
+deepface
