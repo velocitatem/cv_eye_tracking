@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+/* Global styling for the HTML and body */
+html, body {
+    background-color: #f5f5f5; /* Light gray or any color you prefer */
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* The main container for your Streamlit dashboard content */
+.main .block-container {
+    background-color: #ffffff;   /* White background for the main content card */
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 1400px;          /* Optional: limit width on large screens */
+    margin: 2rem auto;          /* Centers the container horizontally */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar container */
+[data-testid="stSidebar"] {
+    background-color: #e8e8e8;  /* Subtle background color for sidebar */
+    color: #333;                /* Sidebar text color */
+    transition: background-color 0.2s ease-in-out;
+    /* Optional: add some padding to the sidebar */
+    padding-top: 1rem;
+}
+
+/* If you want to style the sidebar headings or text further, 
+   you can target additional classes inside the sidebar container. */
+
+/* Plotly charts and person cards styling */
+.stPlotlyChart, .person-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: none; 
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+/* Person card styling */
+.person-card {
+    border: 1px solid #ddd;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out;
+    margin-bottom: 1rem;
+}
+
+.person-card:hover {
+    transform: scale(1.02);
+}
+
+/* Metric box styling (if you use st.metric in your code) */
+.metric-box {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+}

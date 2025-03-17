@@ -3,3 +3,4 @@ opencv-python
 face_recognition
 scikit-learn
 deepface
+streamlit_autorefresh
