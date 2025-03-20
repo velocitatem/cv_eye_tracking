@@ -1,23 +1,16 @@
-# dashboard.py
-
-""" Streamlit dashboard for visualizing attention tracking results. """
-
-# Importing Libs
-
+# Importing Libraries
 import streamlit as st
 import pickle
 import os
 import numpy as np
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import seaborn as sns
 from PIL import Image
-import plotly.express as px
-import plotly.graph_objects as go
 
-
-# Config
-
+# Page Configuration
 st.set_page_config(
     page_title="Face Attention Tracker",
     page_icon="👁️",
@@ -25,34 +18,36 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load the external CSS file
-def local_css(file_name):
-    with open(file_name) as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
-# custom CSS file
-local_css("style.css")
+# Function to load external CSS from a file
+def local_css(file_name: str):
+    if os.path.exists(file_name):
+        with open(file_name) as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    else:
+        st.error(f"CSS file not found: {file_name}")
 
 # LOAD THE DATA
-
 @st.cache_data
 def load_data():
     if os.path.exists("attention_analysis_results.pkl"):
         with open("attention_analysis_results.pkl", "rb") as f:
             return pickle.load(f)
     else:
-        st.error("Could not find attention analysis results. Please run the analysis script first.")
+        st.error(
+            "Could not find attention analysis results. Please run the analysis script first. "
+            "For instructions, refer to the [documentation](https://github.com/velocitatem/cv_eye_tracking)."
+        )
         return None
-    
-# GALLERY VIEW OF THE PERSONS
 
+# GALLERY VIEW OF THE CLASS MEMBERS
 def display_person_gallery(results, selected_person=None, key_prefix="overview"):
     """Display a gallery of all people with their attention scores as clickable cards."""
     person_avg_attention = results["person_avg_attention"]
     person_images = results["person_images"]
 
-    # Sort people by average attention
-    sorted_people = sorted(person_avg_attention.items(), key=lambda x: x[1], reverse=True)
+    # Sort people by Person ID (ascending)
+    sorted_people = sorted(person_avg_attention.items(), key=lambda x: x[0])
+
     cols = st.columns(min(5, len(sorted_people)))
 
     for i, (person_id, avg_attention) in enumerate(sorted_people):
@@ -60,6 +55,7 @@ def display_person_gallery(results, selected_person=None, key_prefix="overview")
             if st.button(f"Person {person_id}", key=f"{key_prefix}_person_{person_id}_{i}"):
                 st.session_state.selected_person = person_id
 
+            # Highlight the selected person
             if selected_person is not None and int(selected_person) == person_id:
                 st.markdown(f"""
                 <div style="border:3px solid #FF5733; padding:5px; border-radius:5px;">
@@ -75,14 +71,16 @@ def display_person_gallery(results, selected_person=None, key_prefix="overview")
                 </div>
                 """, unsafe_allow_html=True)
 
+            # Display a sample image (e.g., the middle frame) if available
             if person_images.get(person_id) and len(person_images[person_id]) > 0:
                 img = person_images[person_id][len(person_images[person_id]) // 2]
                 st.image(img)
 
-
-def plot_attention_time_series(results, selected_person=None):
+# PLOT ATTENTION TIME SERIES
+def plot_attention_time_series(results, selected_person=None, attention_threshold=None):
     """
     If 'selected_person' is None, show lines for ALL people.
+    Optionally filter by attention_threshold.
     """
     person_attention_series = results["person_attention_series"]
     person_timestamps = results["person_timestamps"]
@@ -103,6 +101,10 @@ def plot_attention_time_series(results, selected_person=None):
         df = pd.DataFrame(data_list)
         title = "Attention Over Time (All People)"
 
+    # Apply attention threshold filtering if provided
+    if attention_threshold is not None:
+        df = df[df["Attention"] >= attention_threshold]
+
     fig = px.line(
         df,
         x="Frame",
@@ -114,6 +116,7 @@ def plot_attention_time_series(results, selected_person=None):
         color_discrete_sequence=px.colors.qualitative.Set2
     )
 
+    # Add average line if only one person is selected
     if selected_person is not None and len(df) > 0:
         avg_val = df["Attention"].mean()
         fig.add_hline(
@@ -129,10 +132,12 @@ def plot_attention_time_series(results, selected_person=None):
     )
     return fig
 
+# PLOT ATTENTION DISTRIBUTION
 def plot_attention_distribution(results, selected_person=None):
     """
-    If 'selected_person' is None, We show a boxplot for all persons;
-    otherwise, we show a histogram for that person.
+    Use Plotly for distribution.
+    If 'selected_person' is None, show a boxplot for all persons;
+    otherwise, show a histogram for that person.
     """
     person_attention_series = results["person_attention_series"]
 
@@ -173,10 +178,12 @@ def plot_attention_distribution(results, selected_person=None):
     )
     return fig
 
+# CREATE SUMMARY STATISTICS
 def create_summary_stats(results, selected_person=None):
     """Create a summary statistics DataFrame."""
     person_attention_series = results["person_attention_series"]
     stats_data = []
+
     if selected_person is not None:
         person_id = int(selected_person)
         values = person_attention_series[person_id]
@@ -200,16 +207,21 @@ def create_summary_stats(results, selected_person=None):
                 "Attention Variance": np.var(values),
                 "Number of Appearances": len(values)
             })
-    stats_df = pd.DataFrame(stats_data)
-    return stats_df.sort_values("Average Attention", ascending=False)
+
+    # Sort by "Person ID" in ascending order
+    stats_df = pd.DataFrame(stats_data).sort_values("Person ID", ascending=True)
+    return stats_df
 
 def main():
+    # Load the external CSS file
+    local_css("style.css")
+
     st.title("👁️ Face Attention Tracking Dashboard")
     results = load_data()
     if results is None:
         return
 
-    # Sidebar controls
+    # Sidebar: Basic controls
     st.sidebar.header("Dashboard Controls")
     person_ids = list(results["person_avg_attention"].keys())
     person_ids_str = [str(pid) for pid in person_ids]
@@ -219,12 +231,35 @@ def main():
     else:
         st.session_state.selected_person = None
 
+    # Sidebar: Advanced filtering options (only attention threshold)
+    with st.sidebar.expander("Filtering Options", expanded=True):
+        attention_threshold = st.slider("Attention Threshold", min_value=0.0, max_value=1.0, value=0.0, step=0.05)
+    
     st.sidebar.markdown("---")
     st.sidebar.header("About")
     st.sidebar.info(
-        "This dashboard visualizes attention tracking data for individuals across multiple video frames. "
-        "Click on a person card or use the sidebar to view detailed analysis."
+        "This dashboard visualizes attention tracking data for individuals across multiple video frames.\n\n"
+        "Use the filtering options to set an attention threshold.\n\n"
+        "Detailed metrics include:\n"
+        "- **Attendance Tracking:** Number of frames each student appears in.\n"
+        "- **Average Engagement:** Average attention score per student.\n"
+        "- **Consistency Metrics:** Variance in attention scores.\n"
+        "- **Engagement Trends:** Time series and distribution charts to identify peaks and troughs."
     )
+    
+    # Sidebar: Detailed explanations for key metrics (Tooltips)
+    with st.sidebar.expander("Metric Explanations", expanded=False):
+        st.markdown("""
+        **Total People:** The number of unique individuals detected in the video frames.
+        
+        **Total Observations:** The total count of attention score data points (frames) across all individuals.
+        
+        **Average Attention:** The mean attention score calculated over all frames. A higher score indicates higher engagement.
+        
+        **Appearances:** The number of frames in which an individual appears.
+        
+        **Attention Variance:** A measure of the variability in attention scores, indicating consistency in engagement.
+        """)
 
     # Main layout with Tabs
     tab1, tab2, tab3 = st.tabs(["Overall Summary", "Individual Analysis", "Advanced Visualizations"])
@@ -246,7 +281,7 @@ def main():
         display_person_gallery(results, st.session_state.get("selected_person"), key_prefix="overview")
 
         st.subheader("📈 Attention Over Time (All People)")
-        fig_time_all = plot_attention_time_series(results)
+        fig_time_all = plot_attention_time_series(results, attention_threshold=attention_threshold)
         st.plotly_chart(fig_time_all, use_container_width=True)
 
         st.subheader("📋 Detailed Statistics")
@@ -266,7 +301,7 @@ def main():
             st.header("👥 All People Analysis")
             display_person_gallery(results, key_prefix="individual_all")
             st.subheader("📈 Attention Over Time")
-            fig_time_all_2 = plot_attention_time_series(results)
+            fig_time_all_2 = plot_attention_time_series(results, attention_threshold=attention_threshold)
             st.plotly_chart(fig_time_all_2, use_container_width=True)
             st.subheader("📋 Comparative Statistics")
             stats_df = create_summary_stats(results)
@@ -286,7 +321,7 @@ def main():
                 variance = np.var(values)
                 st.metric("Attention Variance", f"{variance:.4f}")
             st.subheader("📈 Attention Over Time")
-            fig_time_person = plot_attention_time_series(results, selected_person=person_id)
+            fig_time_person = plot_attention_time_series(results, selected_person=person_id, attention_threshold=attention_threshold)
             st.plotly_chart(fig_time_person, use_container_width=True)
             st.subheader("📊 Attention Distribution")
             fig_dist_person = plot_attention_distribution(results, selected_person=person_id)
@@ -294,10 +329,6 @@ def main():
             st.subheader("📋 Detailed Statistics")
             stats_df = create_summary_stats(results, selected_person=person_id)
             st.dataframe(stats_df, use_container_width=True)
-            st.subheader("🖼️ All Appearances")
-            person_images = results["person_images"][person_id]
-            img_index = st.slider("Select Image", 0, len(person_images)-1, 0, key=f"slider_{person_id}")
-            st.image(person_images[img_index], caption=f"Frame {results['person_timestamps'][person_id][img_index]}")
 
     # Advanced Visualizations Tab
     with tab3:
