@@ -282,7 +282,7 @@ def main():
 
         st.subheader("📈 Attention Over Time (All People)")
         fig_time_all = plot_attention_time_series(results, attention_threshold=attention_threshold)
-        st.plotly_chart(fig_time_all, use_container_width=True)
+        st.plotly_chart(fig_time_all, use_container_width=True, key="time_series_tab1")
 
         st.subheader("📋 Detailed Statistics")
         stats_df = create_summary_stats(results)
@@ -290,7 +290,7 @@ def main():
 
         st.subheader("📊 Overall Attention Distribution")
         fig_dist_all = plot_attention_distribution(results)
-        st.plotly_chart(fig_dist_all, use_container_width=True)
+        st.plotly_chart(fig_dist_all, use_container_width=True, key="dist_all_tab1")
 
         csv = stats_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Summary Stats as CSV", data=csv, file_name='summary_stats.csv', mime='text/csv')
@@ -302,7 +302,7 @@ def main():
             display_person_gallery(results, key_prefix="individual_all")
             st.subheader("📈 Attention Over Time")
             fig_time_all_2 = plot_attention_time_series(results, attention_threshold=attention_threshold)
-            st.plotly_chart(fig_time_all_2, use_container_width=True)
+            st.plotly_chart(fig_time_all_2, use_container_width=True, key="time_series_tab2")
             st.subheader("📋 Comparative Statistics")
             stats_df = create_summary_stats(results)
             st.dataframe(stats_df, use_container_width=True)
@@ -322,10 +322,10 @@ def main():
                 st.metric("Attention Variance", f"{variance:.4f}")
             st.subheader("📈 Attention Over Time")
             fig_time_person = plot_attention_time_series(results, selected_person=person_id, attention_threshold=attention_threshold)
-            st.plotly_chart(fig_time_person, use_container_width=True)
+            st.plotly_chart(fig_time_person, use_container_width=True, key="time_series_person")
             st.subheader("📊 Attention Distribution")
             fig_dist_person = plot_attention_distribution(results, selected_person=person_id)
-            st.plotly_chart(fig_dist_person, use_container_width=True)
+            st.plotly_chart(fig_dist_person, use_container_width=True, key="dist_person")
             st.subheader("📋 Detailed Statistics")
             stats_df = create_summary_stats(results, selected_person=person_id)
             st.dataframe(stats_df, use_container_width=True)
@@ -347,7 +347,7 @@ def main():
             height=600,
             margin=dict(l=20, r=20, t=60, b=40)
         )
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, use_container_width=True, key="heatmap_tab3")
 
 if __name__ == "__main__":
     main()
