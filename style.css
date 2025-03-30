@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+/* Global styling for the HTML and body */
+html, body {
+    background-color: #EAECEE; /* Light gray background */
+    font-family: 'Open Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Main container styling */
+.main .block-container {
+    background-color: #faf8e9; /* White container background */
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 2rem auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+}
+
+/* Sidebar container styling */
+[data-testid="stSidebar"] {
+    background-color: #e8f1df; /* Muted gray sidebar */
+    color: #333; /* Dark gray text for readability */
+    transition: background-color 0.2s ease-in-out;
+    padding-top: 1rem;
+}
+
+/* Sidebar headings styling */
+[data-testid="stSidebar"] h2, 
+[data-testid="stSidebar"] h3 {
+    color: #34495E; /* Deep blue-gray for headings */
+}
+
+/* Plotly charts and person cards styling */
+.stPlotlyChart, .person-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Subtle shadow for charts */
+    padding: 15px;
+    margin-bottom: 10px;
+}
+
+/* Person card styling */
+.person-card {
+    border: 1px solid #95A5A6; /* Muted gray border */
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.1s ease-in-out;
+    margin-bottom: 1rem;
+}
+
+.person-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* Enhanced hover effect */
+}
+
+/* Metric box styling */
+.metric-box {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #34495E; /* Deep blue-gray for metrics */
+}
+
+/* Header styling */
+header {
+    background: linear-gradient(90deg, #0c0c0d, #0354b8); /* Gradient header */
+    color: #ffffff;
+    padding: 1rem 2rem;
+    text-align: center;
+}
+
+/* Button styling */
+button {
+    border-radius: 5px;
+    border: none;
+    background-color: #34495E; /* Deep blue-gray button */
+    color: #fff;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+button:hover {
+    background-color: #2D4052; /* Darker blue-gray on hover */
+}
+
+/* Download button styling */
+.stDownloadButton button {
+    background-color: #95A5A6; /* Muted gray download button */
+}
